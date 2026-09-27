@@ -6,8 +6,20 @@ BUILD_DIR="$PROJECT_DIR/build"
 OUTPUT_DIR="$PROJECT_DIR/output"
 APP_NAME="Hi！bili"
 
-# Android SDK paths
-ANDROID_JAR="$ANDROID_HOME/platforms/android-17/android.jar"
+# Android SDK paths - detect available platform
+ANDROID_PLATFORM=""
+for p in 34 33 32 31 30 29 28 27 26 25 24 23 22 21 17; do
+    if [ -f "$ANDROID_HOME/platforms/android-$p/android.jar" ]; then
+        ANDROID_PLATFORM="$p"
+        break
+    fi
+done
+if [ -z "$ANDROID_PLATFORM" ]; then
+    echo "ERROR: No Android platform found"
+    exit 1
+fi
+echo "Using platform android-$ANDROID_PLATFORM"
+ANDROID_JAR="$ANDROID_HOME/platforms/android-$ANDROID_PLATFORM/android.jar"
 BUILD_TOOLS="$ANDROID_HOME/build-tools/34.0.0"
 
 mkdir -p "$BUILD_DIR" "$OUTPUT_DIR"
