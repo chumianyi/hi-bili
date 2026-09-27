@@ -1,83 +1,80 @@
 #!/bin/bash
 set -e
 
-# Hi！bili 构建脚本
-# 纯命令行构建，不依赖 Gradle/Android Studio
-
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BUILD_DIR="$PROJECT_DIR/build"
-ANDROID_JAR="$ANDROID_HOME/platforms/android-34/android.jar"
+OUTPUT_DIR="$PROJECT_DIR/output"
+APP_NAME="Hi！bili"
+
+# Android SDK paths
+ANDROID_JAR="$ANDROID_HOME/platforms/android-17/android.jar"
 BUILD_TOOLS="$ANDROID_HOME/build-tools/34.0.0"
 
-echo "=== Hi！bili Build ==="
-echo "Project: $PROJECT_DIR"
-echo "Android JAR: $ANDROID_JAR"
+mkdir -p "$BUILD_DIR" "$OUTPUT_DIR"
 
-# 清理
-rm -rf "$BUILD_DIR"
-mkdir -p "$BUILD_DIR/gen" "$BUILD_DIR/obj" "$BUILD_DIR/dex"
+echo "=== 1. 编译资源 (aapt2) ==="
+mkdir -p "$BUILD_DIR/compiled_res"
+find "$PROJECT_DIR/res" -type f \( -name "*.xml" -o -name "*.png" -o -name "*.jpg" \) | while read f; do
+    "$BUILD_TOOLS/aapt2" compile "$f" -o "$BUILD_DIR/compiled_res/" 2>/dev/null || true
+done
 
-# 1. 编译资源 (aapt2)
-echo "[1/6] Compiling resources..."
-"$BUILD_TOOLS/aapt2" compile --dir "$PROJECT_DIR/res" -o "$BUILD_DIR/res.zip"
-
-# 2. 链接资源 + 生成 R.java
-echo "[2/6] Linking resources..."
 "$BUILD_TOOLS/aapt2" link \
     -I "$ANDROID_JAR" \
     --manifest "$PROJECT_DIR/AndroidManifest.xml" \
-    -R "$BUILD_DIR/res.zip" \
+    -R "$BUILD_DIR/compiled_res/"*.flat \
+    -o "$BUILD_DIR/app.apk" \
     --java "$BUILD_DIR/gen" \
-    --min-sdk-version 1 \
-    --target-sdk-version 17 \
-    -o "$BUILD_DIR/resources.apk" \
-    --auto-add-overlay
+    --auto-add-overlay 2>&1 | tail -5
 
-# 3. 编译 Java
-echo "[3/6] Compiling Java..."
+echo "=== 2. 编译 Java ==="
+mkdir -p "$BUILD_DIR/classes"
 find "$PROJECT_DIR/src" "$BUILD_DIR/gen" -name "*.java" > "$BUILD_DIR/sources.txt"
+
+# Include zxing jar in classpath
+CLASSPATH="$ANDROID_JAR"
+if [ -f "$PROJECT_DIR/libs/core.jar" ]; then
+    CLASSPATH="$CLASSPATH:$PROJECT_DIR/libs/core.jar"
+fi
+
 javac -source 1.7 -target 1.7 \
-    -bootclasspath "$ANDROID_JAR" \
-    -classpath "$ANDROID_JAR" \
-    -d "$BUILD_DIR/obj" \
-    @"$BUILD_DIR/sources.txt"
+    -cp "$CLASSPATH" \
+    -d "$BUILD_DIR/classes" \
+    @"$BUILD_DIR/sources.txt" 2>&1 | tail -10
 
-# 4. 转换为 DEX
-echo "[4/6] Converting to DEX..."
-"$BUILD_TOOLS/d8" \
-    --min-api 1 \
-    --output "$BUILD_DIR/dex" \
-    --lib "$ANDROID_JAR" \
-    $(find "$BUILD_DIR/obj" -name "*.class")
+echo "=== 3. DEX 转换 (d8) ==="
+DEX_INPUTS=$(find "$BUILD_DIR/classes" -name "*.class")
+if [ -f "$PROJECT_DIR/libs/core.jar" ]; then
+    "$BUILD_TOOLS/d8" --min-api 1 --output "$BUILD_DIR" $DEX_INPUTS "$PROJECT_DIR/libs/core.jar" 2>&1 | tail -5
+else
+    "$BUILD_TOOLS/d8" --min-api 1 --output "$BUILD_DIR" $DEX_INPUTS 2>&1 | tail -5
+fi
 
-# 5. 打包 APK
-echo "[5/6] Packaging APK..."
-cp "$BUILD_DIR/resources.apk" "$BUILD_DIR/HiBili_unsigned.apk"
-cd "$BUILD_DIR/dex"
-zip -u "$BUILD_DIR/HiBili_unsigned.apk" classes.dex
-cd "$PROJECT_DIR"
+echo "=== 4. 打包 APK ==="
+cd "$BUILD_DIR"
+cp app.apk app_unsigned.apk
+# Add classes.dex
+zip -j app_unsigned.apk classes.dex
+# Add resources (mipmap icons etc already in apk from aapt2 link)
 
-# 6. Zipalign + 签名
-echo "[6/6] Zipalign and sign..."
-"$BUILD_TOOLS/zipalign" -f -p 4 "$BUILD_DIR/HiBili_unsigned.apk" "$BUILD_DIR/HiBili_aligned.apk"
+echo "=== 5. zipalign ==="
+"$BUILD_TOOLS/zipalign" -f 4 app_unsigned.apk app_aligned.apk
 
-# 生成 keystore
-keytool -genkeypair -v \
-    -keystore "$BUILD_DIR/hibili.keystore" \
-    -alias hibili \
-    -keyalg RSA -keysize 2048 -validity 10000 \
-    -storepass hibili -keypass hibili \
-    -dname "CN=HiBili, OU=Dev, O=HiBili, L=Shanghai, ST=Shanghai, C=CN" 2>/dev/null
+echo "=== 6. 签名 ==="
+# Generate debug keystore if not exists
+if [ ! -f "$BUILD_DIR/debug.keystore" ]; then
+    keytool -genkeypair -v -keystore "$BUILD_DIR/debug.keystore" \
+        -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 \
+        -storepass android -keypass android \
+        -dname "CN=Debug,O=Android,C=US" 2>/dev/null
+fi
 
 "$BUILD_TOOLS/apksigner" sign \
-    --ks "$BUILD_DIR/hibili.keystore" \
-    --ks-pass pass:hibili \
-    --key-pass pass:hibili \
-    --out "$BUILD_DIR/Hi！bili.apk" \
-    "$BUILD_DIR/HiBili_aligned.apk"
+    --ks "$BUILD_DIR/debug.keystore" \
+    --ks-key-alias androiddebugkey \
+    --ks-pass pass:android \
+    --key-pass pass:android \
+    --out "$OUTPUT_DIR/${APP_NAME}.apk" \
+    app_aligned.apk 2>&1 | tail -3
 
-"$BUILD_TOOLS/apksigner" verify --verbose "$BUILD_DIR/Hi！bili.apk"
-
-echo ""
-echo "=== Build Complete ==="
-ls -lh "$BUILD_DIR/Hi！bili.apk"
+echo "=== 完成 ==="
+ls -la "$OUTPUT_DIR/"

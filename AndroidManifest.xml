@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.hi.bili"
-    android:versionCode="1"
-    android:versionName="1.0.0">
+    android:versionCode="2"
+    android:versionName="1.1.0">
 
     <uses-sdk android:minSdkVersion="1" android:targetSdkVersion="17" />
 
@@ -11,10 +11,11 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
     <application
         android:label="@string/app_name"
-        android:icon="@drawable/ic_launcher"
+        android:icon="@mipmap/ic_launcher"
         android:theme="@android:style/Theme.Black.NoTitleBar"
         android:allowBackup="false"
         android:hardwareAccelerated="true">
@@ -26,11 +27,10 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".LoginActivity" android:screenOrientation="portrait" />
         <activity android:name=".VideoDetailActivity" android:screenOrientation="portrait" />
         <activity android:name=".PlayerActivity" android:screenOrientation="sensor" />
-        <activity android:name=".SearchActivity" android:screenOrientation="portrait" />
         <activity android:name=".CommentsActivity" android:screenOrientation="portrait" />
-        <activity android:name=".AboutActivity" android:screenOrientation="portrait" />
         <activity android:name=".UpdateActivity" android:screenOrientation="portrait" />
 
     </application>

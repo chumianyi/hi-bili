@@ -1,5 +1,6 @@
 package com.hi.bili;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Handler;
@@ -16,6 +17,15 @@ public class ImageLoader {
 
     private static Map cache = new HashMap();
     private static Handler handler = new Handler();
+    private Context context;
+
+    public ImageLoader(Context ctx) {
+        context = ctx;
+    }
+
+    public void display(String url, ImageView imageView, int w, int h) {
+        load(url, imageView);
+    }
 
     public static void load(final String url, final ImageView imageView) {
         if (url == null || url.length() == 0) {
