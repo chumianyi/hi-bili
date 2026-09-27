@@ -1,0 +1,49 @@
+package com.hi.bili;
+
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
+public class HttpUtil {
+
+    public static String get(String urlStr) {
+        HttpURLConnection conn = null;
+        InputStream is = null;
+        BufferedReader reader = null;
+        try {
+            URL url = new URL(urlStr);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(10000);
+            conn.setReadTimeout(10000);
+            conn.setRequestProperty("User-Agent",
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+            conn.setRequestProperty("Referer", "https://www.bilibili.com");
+            int code = conn.getResponseCode();
+            if (code == 200) {
+                is = conn.getInputStream();
+            } else {
+                is = conn.getErrorStream();
+            }
+            reader = new BufferedReader(new InputStreamReader(is, "UTF-8"));
+            StringBuffer sb = new StringBuffer();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                sb.append(line);
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        } finally {
+            try {
+                if (reader != null) reader.close();
+                if (is != null) is.close();
+                if (conn != null) conn.disconnect();
+            } catch (Exception e) {
+            }
+        }
+    }
+}

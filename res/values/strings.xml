@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Hi！bili</string>
+    <string name="tab_hot">热门</string>
+    <string name="tab_search">搜索</string>
+    <string name="tab_about">关于</string>
+    <string name="search_hint">搜索视频...</string>
+    <string name="loading">加载中...</string>
+    <string name="no_data">暂无数据</string>
+    <string name="play">播放</string>
+    <string name="comments">评论</string>
+    <string name="check_update">检查更新</string>
+    <string name="current_version">当前版本</string>
+    <string name="latest_version">最新版本</string>
+    <string name="update_now">立即更新</string>
+    <string name="already_latest">已是最新版本</string>
+    <string name="checking">正在检查更新...</string>
+    <string name="update_found">发现新版本，点击下方按钮更新</string>
+    <string name="check_failed">检查失败，请检查网络连接</string>
+    <string name="downloading">开始下载，请看通知栏</string>
+    <string name="about_text">Hi！bili\n\n一个简洁的哔哩哔哩第三方客户端\n\n本项目是免费的，如果你是买的，你就被骗了，请退款。</string>
+    <string name="announcement_title">温馨提示</string>
+    <string name="announcement_msg">本项目是免费的，如果你是买的，你就被骗了，请退款。</string>
+    <string name="i_know">我知道了</string>
+</resources>
