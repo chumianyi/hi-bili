@@ -106,38 +106,27 @@ public class VideoDetailActivity extends Activity {
                 if (video == null) return;
                 try {
                     String mode = PrefsManager.getPlaybackMode();
+                    String bvid = video.bvid != null ? video.bvid : "";
+
                     if ("external".equals(mode)) {
-                        // 外部播放器：获取直链后用 Intent 打开
-                        Toast.makeText(VideoDetailActivity.this, "正在获取视频直链...", Toast.LENGTH_SHORT).show();
-                        new Thread(new Runnable() {
-                            public void run() {
-                                final String url = BiliApi.getPlayUrl(video.aid, video.cid);
-                                runOnUiThread(new Runnable() {
-                                    public void run() {
-                                        try {
-                                            if (url != null && url.length() > 0) {
-                                                Intent extIntent = new Intent(Intent.ACTION_VIEW);
-                                                extIntent.setDataAndType(android.net.Uri.parse(url), "video/*");
-                                                startActivity(Intent.createChooser(extIntent, "选择播放器"));
-                                            } else {
-                                                Toast.makeText(VideoDetailActivity.this, "获取直链失败，可切换其他播放方式", Toast.LENGTH_SHORT).show();
-                                            }
-                                        } catch (Exception e) {
-                                            Toast.makeText(VideoDetailActivity.this, "无法打开外部播放器", Toast.LENGTH_SHORT).show();
-                                        }
-                                    }
-                                });
-                            }
-                        }).start();
+                        // 外部播放器：打开 B 站视频页面（直链无 Referer 会 403）
+                        if (bvid.length() > 0) {
+                            Intent extIntent = new Intent(Intent.ACTION_VIEW,
+                                android.net.Uri.parse("https://www.bilibili.com/video/" + bvid));
+                            startActivity(extIntent);
+                        } else {
+                            Toast.makeText(VideoDetailActivity.this, "无法获取视频地址", Toast.LENGTH_SHORT).show();
+                        }
                     } else if ("webview".equals(mode)) {
-                        // 内部 WebView 播放
+                        // 内部 WebView 播放（B 站官方嵌入播放器）
                         Intent it = new Intent(VideoDetailActivity.this, WebViewPlayerActivity.class);
                         it.putExtra("avid", video.aid);
                         it.putExtra("cid", video.cid);
+                        it.putExtra("bvid", bvid);
                         it.putExtra("title", video.title);
                         startActivity(it);
                     } else {
-                        // 内部播放器（硬解）
+                        // 内部播放器（硬解，MediaPlayer 带 Referer 头）
                         Intent it = new Intent(VideoDetailActivity.this, PlayerActivity.class);
                         it.putExtra("avid", video.aid);
                         it.putExtra("cid", video.cid);
