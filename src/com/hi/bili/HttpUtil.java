@@ -61,7 +61,7 @@ public class HttpUtil {
     }
 
     public static String extractCookies(HttpURLConnection conn) {
-        Map> headerFields = conn.getHeaderFields();
+        Map<String, List<String>> headerFields = conn.getHeaderFields();
         if (headerFields == null) return "";
         List cookies = headerFields.get("Set-Cookie");
         if (cookies == null) return "";

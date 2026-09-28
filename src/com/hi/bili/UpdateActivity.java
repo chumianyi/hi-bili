@@ -216,7 +216,7 @@ public class UpdateActivity extends Activity {
             Intent intent = new Intent(Intent.ACTION_VIEW);
             if (Build.VERSION.SDK_INT >= 24) {
                 File f = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "HiBili_update.apk");
-                Uri contentUri = HibiFileProvider.getUriForFile(this, getPackageName() + ".fileprovider", f);
+                Uri contentUri = HibiFileProvider.getUriForFile(this, f);
                 intent.setDataAndType(contentUri, "application/vnd.android.package-archive");
                 intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             } else {
