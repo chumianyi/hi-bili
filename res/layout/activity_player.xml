@@ -4,8 +4,8 @@
     android:layout_height="fill_parent"
     android:background="#FF000000">
 
-    <VideoView
-        android:id="@+id/video_view"
+    <SurfaceView
+        android:id="@+id/surface_view"
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
         android:layout_gravity="center" />
@@ -14,6 +14,37 @@
         android:id="@+id/danmaku_view"
         android:layout_width="fill_parent"
         android:layout_height="fill_parent" />
+
+    <LinearLayout
+        android:id="@+id/loading_layout"
+        android:orientation="vertical"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center">
+        <ProgressBar
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+        <TextView
+            android:id="@+id/tv_loading"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="加载中..."
+            android:textColor="#FFFFFFFF"
+            android:textSize="14sp"
+            android:layout_marginTop="8dip" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tv_error"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:textColor="#FFFF5252"
+        android:textSize="14sp"
+        android:padding="20dip"
+        android:visibility="gone" />
 
     <LinearLayout
         android:orientation="horizontal"
@@ -31,10 +62,50 @@
             android:background="#880F3460" />
     </LinearLayout>
 
-    <ProgressBar
-        android:id="@+id/progress"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:visibility="gone" />
+    <LinearLayout
+        android:id="@+id/control_bar"
+        android:orientation="horizontal"
+        android:layout_width="fill_parent"
+        android:layout_height="48dip"
+        android:layout_gravity="bottom"
+        android:background="#CC000000"
+        android:gravity="center_vertical"
+        android:paddingLeft="8dip"
+        android:paddingRight="8dip"
+        android:visibility="gone">
+
+        <Button
+            android:id="@+id/btn_play_pause"
+            android:layout_width="40dip"
+            android:layout_height="36dip"
+            android:text="||"
+            android:textColor="#FFFFFFFF"
+            android:textSize="14sp"
+            android:background="#00000000" />
+
+        <TextView
+            android:id="@+id/tv_time_current"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="00:00"
+            android:textColor="#FFFFFFFF"
+            android:textSize="11sp"
+            android:layout_marginLeft="4dip" />
+
+        <SeekBar
+            android:id="@+id/seek_bar"
+            android:layout_width="0dip"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginLeft="6dip"
+            android:layout_marginRight="6dip" />
+
+        <TextView
+            android:id="@+id/tv_time_total"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="00:00"
+            android:textColor="#FFFFFFFF"
+            android:textSize="11sp" />
+    </LinearLayout>
 </FrameLayout>
