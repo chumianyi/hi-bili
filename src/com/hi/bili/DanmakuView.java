@@ -83,20 +83,21 @@ public class DanmakuView extends View {
     }
 
     private void addDanmaku(BiliApi.Danmaku d) {
-        if (viewWidth == 0) return;
-        DanmakuItem item = new DanmakuItem();
-        item.text = d.text;
-        item.x = viewWidth;
-        item.color = d.color != 0 ? d.color : Color.WHITE;
-        item.size = d.size > 0 ? d.size : textSize;
-        paint.setTextSize(item.size);
-        item.width = paint.measureText(d.text);
-        // Random lane
-        int lanes = Math.max(1, (int)(viewHeight / (item.size + 8)));
-        int lane = (int)(Math.random() * lanes);
-        item.y = (lane + 1) * (item.size + 8);
-        if (item.y > viewHeight - item.size) item.y = viewHeight - item.size;
-        active.add(item);
+        try {
+            if (viewWidth == 0 || d == null || d.text == null) return;
+            DanmakuItem item = new DanmakuItem();
+            item.text = d.text;
+            item.x = viewWidth;
+            item.color = d.color != 0 ? d.color : Color.WHITE;
+            item.size = d.size > 0 ? d.size : textSize;
+            paint.setTextSize(item.size);
+            item.width = paint.measureText(d.text);
+            int lanes = Math.max(1, (int)(viewHeight / (item.size + 8)));
+            int lane = (int)(Math.random() * lanes);
+            item.y = (lane + 1) * (item.size + 8);
+            if (item.y > viewHeight - item.size) item.y = viewHeight - item.size;
+            active.add(item);
+        } catch (Exception e) {}
     }
 
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
@@ -106,28 +107,30 @@ public class DanmakuView extends View {
     }
 
     protected void onDraw(Canvas canvas) {
-        super.onDraw(canvas);
-        if (!showDanmaku) return;
+        try {
+            super.onDraw(canvas);
+            if (!showDanmaku) return;
 
-        long now = System.currentTimeMillis();
-        float dt = lastTime > 0 ? (now - lastTime) / 1000f : 0.016f;
-        lastTime = now;
+            long now = System.currentTimeMillis();
+            float dt = lastTime > 0 ? (now - lastTime) / 1000f : 0.016f;
+            lastTime = now;
 
-        Iterator it = active.iterator();
-        while (it.hasNext()) {
-            DanmakuItem item = (DanmakuItem) it.next();
-            item.x -= speed * dt;
-            if (item.x + item.width < 0) {
-                it.remove();
-                continue;
+            Iterator it = active.iterator();
+            while (it.hasNext()) {
+                DanmakuItem item = (DanmakuItem) it.next();
+                item.x -= speed * dt;
+                if (item.x + item.width < 0) {
+                    it.remove();
+                    continue;
+                }
+                paint.setTextSize(item.size);
+                paint.setColor(item.color);
+                canvas.drawText(item.text, item.x, item.y, paint);
             }
-            paint.setTextSize(item.size);
-            paint.setColor(item.color);
-            canvas.drawText(item.text, item.x, item.y, paint);
-        }
 
-        if (active.size() > 0) {
-            invalidate();
-        }
+            if (active.size() > 0) {
+                invalidate();
+            }
+        } catch (Exception e) {}
     }
 }

@@ -108,7 +108,8 @@ public class BiliApi {
             params.put("avid", avid);
             params.put("cid", cid);
             params.put("qn", "64");
-            params.put("fnval", "16");
+            params.put("fnval", "1");
+            params.put("fnver", "0");
             String query = WbiSign.sign(params);
             String url = BASE + "/x/player/wbi/playurl?" + query;
             String json = HttpUtil.getWithCookie(url);
@@ -116,10 +117,19 @@ public class BiliApi {
             JSONObject obj = new JSONObject(json);
             if (obj.optInt("code") != 0) return null;
             JSONObject data = obj.getJSONObject("data");
+            // 优先 durl（合并音视频，VideoView 可直接播放）
+            JSONArray durl = data.optJSONArray("durl");
+            if (durl != null && durl.length() > 0) {
+                JSONObject d0 = durl.getJSONObject(0);
+                String u = d0.optString("url", "");
+                if (u.length() > 0) return u;
+                JSONArray backup = d0.optJSONArray("backup_url");
+                if (backup != null && backup.length() > 0) return backup.optString(0, "");
+            }
+            // 回退 dash（仅视频流）
             JSONObject dash = data.optJSONObject("dash");
             if (dash != null) {
                 JSONArray videos = dash.optJSONArray("video");
-                JSONArray audios = dash.optJSONArray("audio");
                 if (videos != null && videos.length() > 0) {
                     JSONObject v0 = videos.getJSONObject(0);
                     String baseUrl = v0.optString("baseUrl", "");
@@ -127,11 +137,6 @@ public class BiliApi {
                     JSONArray backup = v0.optJSONArray("backupUrl");
                     if (backup != null && backup.length() > 0) return backup.optString(0, "");
                 }
-            }
-            JSONArray durl = data.optJSONArray("durl");
-            if (durl != null && durl.length() > 0) {
-                JSONObject d0 = durl.getJSONObject(0);
-                return d0.optString("url", "");
             }
         } catch (Exception e) {
             e.printStackTrace();
