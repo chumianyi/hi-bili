@@ -92,6 +92,8 @@ if [ ! -f "$BUILD_DIR/debug.keystore" ]; then
 fi
 
 "$BUILD_TOOLS/apksigner" sign \
+    --v1-signing-enabled true \
+    --v2-signing-enabled true \
     --ks "$BUILD_DIR/debug.keystore" \
     --ks-key-alias androiddebugkey \
     --ks-pass pass:android \
