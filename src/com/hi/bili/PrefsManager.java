@@ -52,6 +52,15 @@ public class PrefsManager {
         sp.edit().putBoolean("danmaku_enabled", e).commit();
     }
 
+    // === 播放方式 ===
+    // "internal" = 内置播放器, "browser" = 浏览器播放
+    public static String getPlaybackMode() {
+        return sp.getString("playback_mode", "internal");
+    }
+    public static void setPlaybackMode(String mode) {
+        sp.edit().putString("playback_mode", mode).commit();
+    }
+
     // === 观看历史 ===
     public static void addHistory(String bvid, String title, String pic) {
         try {

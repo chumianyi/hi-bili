@@ -144,7 +144,7 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback {
     }
 
     private void fetchPlayUrl(final String avid, final String cid) {
-        tvLoading.setText("正在获取视频地址...");
+        // 不显示文字，只显示加载图标
         new Thread(new Runnable() {
             public void run() {
                 String playUrl = null;
@@ -155,15 +155,13 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback {
                         try {
                             if (destroyed) return;
                             if (finalUrl == null || finalUrl.length() == 0) {
-                                showError("视频地址获取失败\n可能是会员专享视频或需要登录");
+                                showError("视频地址获取失败\n可能是会员专享视频或需要登录\n可在设置中切换为浏览器播放");
                                 return;
                             }
                             pendingUrl = finalUrl;
                             if (surfaceReady) {
                                 startPlay(finalUrl);
                                 pendingUrl = null;
-                            } else {
-                                tvLoading.setText("等待画面就绪...");
                             }
                         } catch (Exception e) {
                             showError("播放启动失败: " + e.getMessage());
@@ -176,8 +174,7 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback {
 
     private void startPlay(String url) {
         try {
-            loadingLayout.setVisibility(View.VISIBLE);
-            tvLoading.setText("缓冲中...");
+            // 不显示缓冲文字，只保留加载图标
             tvError.setVisibility(View.GONE);
 
             requestAudioFocus();
@@ -222,7 +219,7 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback {
 
             mediaPlayer.setOnErrorListener(new MediaPlayer.OnErrorListener() {
                 public boolean onError(MediaPlayer mp, int what, int extra) {
-                    try { showError("视频播放失败 (错误码: " + what + ")\n可能是视频源不可用或网络问题"); } catch (Exception e) {}
+                    try { showError("视频播放失败 (错误码: " + what + ")\n可在设置中切换为浏览器播放"); } catch (Exception e) {}
                     return true;
                 }
             });

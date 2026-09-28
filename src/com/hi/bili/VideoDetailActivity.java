@@ -103,12 +103,29 @@ public class VideoDetailActivity extends Activity {
 
         btnPlay.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                if (video != null) {
-                    Intent it = new Intent(VideoDetailActivity.this, PlayerActivity.class);
-                    it.putExtra("avid", video.aid);
-                    it.putExtra("cid", video.cid);
-                    it.putExtra("title", video.title);
-                    startActivity(it);
+                if (video == null) return;
+                try {
+                    String mode = PrefsManager.getPlaybackMode();
+                    if ("browser".equals(mode)) {
+                        // 浏览器播放：打开 B 站视频页面
+                        String bvid = video.bvid != null ? video.bvid : "";
+                        if (bvid.length() > 0) {
+                            Intent webIntent = new Intent(Intent.ACTION_VIEW,
+                                android.net.Uri.parse("https://www.bilibili.com/video/" + bvid));
+                            startActivity(webIntent);
+                        } else {
+                            Toast.makeText(VideoDetailActivity.this, "无法获取视频地址", Toast.LENGTH_SHORT).show();
+                        }
+                    } else {
+                        // 内置播放器
+                        Intent it = new Intent(VideoDetailActivity.this, PlayerActivity.class);
+                        it.putExtra("avid", video.aid);
+                        it.putExtra("cid", video.cid);
+                        it.putExtra("title", video.title);
+                        startActivity(it);
+                    }
+                } catch (Exception e) {
+                    Toast.makeText(VideoDetailActivity.this, "播放启动失败", Toast.LENGTH_SHORT).show();
                 }
             }
         });

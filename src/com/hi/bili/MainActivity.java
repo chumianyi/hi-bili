@@ -271,7 +271,8 @@ public class MainActivity extends Activity {
 
         String[][] items = {
             {"发布视频", "upload"}, {"我的视频", "myvideos"}, {"每日签到", "checkin"},
-            {"缓存管理", "cache"}, {"弹幕设置", "danmaku"}, {"检查更新", "update"}, {"退出登录", "logout"}
+            {"缓存管理", "cache"}, {"弹幕设置", "danmaku"}, {"播放方式", "playback"},
+            {"检查更新", "update"}, {"退出登录", "logout"}
         };
         for (int i = 0; i < items.length; i++) {
             final String tag = items[i][1];
@@ -307,6 +308,8 @@ public class MainActivity extends Activity {
                 Intent it = new Intent(this, PersonalActivity.class); it.putExtra("mode", "cache"); startActivity(it);
             } else if ("danmaku".equals(tag)) {
                 showDanmakuSettings();
+            } else if ("playback".equals(tag)) {
+                showPlaybackSettings();
             } else if ("update".equals(tag)) {
                 startActivity(new Intent(this, UpdateActivity.class));
             } else if ("logout".equals(tag)) {
@@ -345,6 +348,29 @@ public class MainActivity extends Activity {
             }
         });
         builder.show();
+    }
+
+    private void showPlaybackSettings() {
+        try {
+            final String current = PrefsManager.getPlaybackMode();
+            final String[] modes = {"内置播放器", "浏览器播放"};
+            final String[] modeVals = {"internal", "browser"};
+            int checked = 0;
+            for (int i = 0; i < modeVals.length; i++) { if (modeVals[i].equals(current)) checked = i; }
+            android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+            builder.setTitle("播放方式");
+            final int fChecked = checked;
+            builder.setSingleChoiceItems(modes, fChecked, new android.content.DialogInterface.OnClickListener() {
+                public void onClick(android.content.DialogInterface dialog, int which) {
+                    PrefsManager.setPlaybackMode(modeVals[which]);
+                    Toast.makeText(MainActivity.this, "已设置为" + modes[which], Toast.LENGTH_SHORT).show();
+                    dialog.dismiss();
+                }
+            });
+            builder.show();
+        } catch (Exception e) {
+            Toast.makeText(this, "设置失败", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void openVideo(String bvid, String title, String pic) {
