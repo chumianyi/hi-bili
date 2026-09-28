@@ -2,6 +2,7 @@ package com.hi.bili;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.Gravity;
@@ -19,6 +20,8 @@ import android.widget.Toast;
 import android.widget.ViewFlipper;
 
 import com.hi.bili.model.Video;
+
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,91 +42,78 @@ public class MainActivity extends Activity {
     private int hotPage = 1;
     private boolean hotLoading = false;
     private boolean hotRefreshing = false;
-    private ImageView ivUserAvatar;
-    private TextView tvUserName;
-    private Button btnLogin;
+    private boolean isLiteMode = false;
+    private Button tabHot, tabSearch, tabPersonal;
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        PrefsManager.init(this);
         UserManager.load(this);
 
+        if (PrefsManager.isFirstLaunch()) {
+            startActivity(new Intent(this, OnboardingActivity.class));
+            finish();
+            return;
+        }
+
+        isLiteMode = Build.VERSION.SDK_INT < 3;
+        buildUI();
+        AnnouncementHelper.show(this);
+
+        String defTab = PrefsManager.getDefaultTab();
+        if ("search".equals(defTab)) {
+            flipper.setDisplayedChild(1); updateTabs(1);
+        } else if ("personal".equals(defTab) && !isLiteMode) {
+            flipper.setDisplayedChild(2); updateTabs(2);
+        } else {
+            flipper.setDisplayedChild(0); updateTabs(0);
+        }
+        loadHot();
+    }
+
+    private void buildUI() {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(0xFF1A1A2E);
+        root.setBackgroundColor(0xFFF5F9FF);
 
-        // 顶部栏
         LinearLayout topBar = new LinearLayout(this);
         topBar.setOrientation(LinearLayout.HORIZONTAL);
-        topBar.setBackgroundColor(0xFF0F3460);
-        topBar.setPadding(16, 12, 16, 12);
+        topBar.setBackgroundColor(0xFF2196F3);
+        topBar.setPadding(20, 14, 20, 14);
         topBar.setGravity(Gravity.CENTER_VERTICAL);
 
         TextView tvTitle = new TextView(this);
         tvTitle.setText("Hi！bili");
-        tvTitle.setTextColor(0xFFE94560);
+        tvTitle.setTextColor(0xFFFFFFFF);
         tvTitle.setTextSize(20);
         tvTitle.getPaint().setFakeBoldText(true);
         topBar.addView(tvTitle, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
 
-        // 用户区域
-        LinearLayout userArea = new LinearLayout(this);
-        userArea.setOrientation(LinearLayout.HORIZONTAL);
-        userArea.setGravity(Gravity.CENTER_VERTICAL);
-
-        ivUserAvatar = new ImageView(this);
-        ivUserAvatar.setLayoutParams(new LinearLayout.LayoutParams(36, 36));
-        ivUserAvatar.setBackgroundColor(0xFF333333);
-        userArea.addView(ivUserAvatar);
-
-        tvUserName = new TextView(this);
-        tvUserName.setTextColor(0xFFFFFFFF);
-        tvUserName.setTextSize(12);
-        tvUserName.setPadding(8, 0, 8, 0);
-        userArea.addView(tvUserName);
-
-        btnLogin = new Button(this);
-        btnLogin.setText("登录");
-        btnLogin.setTextColor(0xFFFFFFFF);
-        btnLogin.setTextSize(11);
-        btnLogin.setBackgroundColor(0xFFE94560);
-        btnLogin.setPadding(12, 4, 12, 4);
-        userArea.addView(btnLogin, new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
-
-        topBar.addView(userArea);
+        if (!isLiteMode) {
+            TextView tvUser = new TextView(this);
+            tvUser.setText(UserManager.isLogin() ? UserManager.getUname() : "未登录");
+            tvUser.setTextColor(0xFFFFFFFF);
+            tvUser.setTextSize(12);
+            tvUser.setPadding(0, 0, 12, 0);
+            topBar.addView(tvUser);
+        }
         root.addView(topBar, new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
-        updateUserUI();
-
-        btnLogin.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                if (UserManager.isLogin()) {
-                    UserManager.logout(MainActivity.this);
-                    updateUserUI();
-                    Toast.makeText(MainActivity.this, "已退出登录", Toast.LENGTH_SHORT).show();
-                } else {
-                    startActivityForResult(new Intent(MainActivity.this, LoginActivity.class), 100);
-                }
-            }
-        });
-
-        // 标签栏
         LinearLayout tabBar = new LinearLayout(this);
         tabBar.setOrientation(LinearLayout.HORIZONTAL);
-        tabBar.setBackgroundColor(0xFF16213E);
-
-        final Button tabHot = makeTab("热门", true);
-        final Button tabSearch = makeTab("搜索", false);
-        final Button tabAbout = makeTab("关于", false);
-
-        tabBar.addView(tabHot, new LinearLayout.LayoutParams(0, 70, 1));
-        tabBar.addView(tabSearch, new LinearLayout.LayoutParams(0, 70, 1));
-        tabBar.addView(tabAbout, new LinearLayout.LayoutParams(0, 70, 1));
+        tabBar.setBackgroundColor(0xFFFFFFFF);
+        tabHot = makeTab("热门", true);
+        tabSearch = makeTab("搜索", false);
+        tabBar.addView(tabHot, new LinearLayout.LayoutParams(0, 64, 1));
+        tabBar.addView(tabSearch, new LinearLayout.LayoutParams(0, 64, 1));
+        if (!isLiteMode) {
+            tabPersonal = makeTab("我的", false);
+            tabBar.addView(tabPersonal, new LinearLayout.LayoutParams(0, 64, 1));
+        }
         root.addView(tabBar, new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
-        // ViewFlipper
         flipper = new ViewFlipper(this);
 
         // 热门页
@@ -131,11 +121,11 @@ public class MainActivity extends Activity {
         hotPageLayout.setOrientation(LinearLayout.VERTICAL);
         hotProgress = new ProgressBar(this);
         hotPageLayout.addView(hotProgress, new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.FILL_PARENT, 60));
+            LinearLayout.LayoutParams.FILL_PARENT, 50));
         hotList = new ListView(this);
         hotList.setCacheColorHint(0);
         hotList.setDividerHeight(1);
-        hotList.setDivider(new android.graphics.drawable.ColorDrawable(0xFF2A2A4E));
+        hotList.setDivider(new android.graphics.drawable.ColorDrawable(0xFFE0E0E0));
         hotPageLayout.addView(hotList, new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.FILL_PARENT, 0, 1));
         flipper.addView(hotPageLayout);
@@ -144,154 +134,84 @@ public class MainActivity extends Activity {
         LinearLayout searchPageLayout = new LinearLayout(this);
         searchPageLayout.setOrientation(LinearLayout.VERTICAL);
         searchPageLayout.setPadding(16, 16, 16, 16);
-
         LinearLayout searchRow = new LinearLayout(this);
         searchRow.setOrientation(LinearLayout.HORIZONTAL);
         etSearch = new EditText(this);
-        etSearch.setHint("搜索视频...");
-        etSearch.setTextColor(0xFFFFFFFF);
-        etSearch.setHintTextColor(0xFF666666);
-        etSearch.setBackgroundColor(0xFF16213E);
-        etSearch.setPadding(12, 10, 12, 10);
+        etSearch.setHint("搜索视频 / BV号 / AV号");
+        etSearch.setTextColor(0xFF212121);
+        etSearch.setHintTextColor(0xFF9E9E9E);
+        etSearch.setBackgroundColor(0xFFE3F2FD);
+        etSearch.setPadding(14, 10, 14, 10);
+        etSearch.setSingleLine(true);
         searchRow.addView(etSearch, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
         Button btnSearch = new Button(this);
         btnSearch.setText("搜索");
         btnSearch.setTextColor(0xFFFFFFFF);
-        btnSearch.setBackgroundColor(0xFFE94560);
+        btnSearch.setBackgroundColor(0xFF2196F3);
         searchRow.addView(btnSearch);
         searchPageLayout.addView(searchRow, new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
-
         searchProgress = new ProgressBar(this);
         searchPageLayout.addView(searchProgress, new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.FILL_PARENT, 60));
+            LinearLayout.LayoutParams.FILL_PARENT, 50));
         searchList = new ListView(this);
         searchList.setCacheColorHint(0);
         searchList.setDividerHeight(1);
-        searchList.setDivider(new android.graphics.drawable.ColorDrawable(0xFF2A2A4E));
+        searchList.setDivider(new android.graphics.drawable.ColorDrawable(0xFFE0E0E0));
         searchPageLayout.addView(searchList, new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.FILL_PARENT, 0, 1));
         flipper.addView(searchPageLayout);
 
-        // 关于页
-        LinearLayout aboutPage = new LinearLayout(this);
-        aboutPage.setOrientation(LinearLayout.VERTICAL);
-        aboutPage.setPadding(32, 40, 32, 32);
-        aboutPage.setGravity(Gravity.CENTER_HORIZONTAL);
+        if (!isLiteMode) {
+            flipper.addView(buildPersonalPage());
+        }
 
-        TextView aboutTitle = new TextView(this);
-        aboutTitle.setText("Hi！bili");
-        aboutTitle.setTextColor(0xFFE94560);
-        aboutTitle.setTextSize(28);
-        aboutTitle.getPaint().setFakeBoldText(true);
-        aboutTitle.setGravity(Gravity.CENTER);
-        aboutPage.addView(aboutTitle, new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
-
-        TextView aboutVer = new TextView(this);
-        aboutVer.setText("版本 1.1.0");
-        aboutVer.setTextColor(0xFF8892B0);
-        aboutVer.setTextSize(14);
-        aboutVer.setGravity(Gravity.CENTER);
-        aboutVer.setPadding(0, 8, 0, 30);
-        aboutPage.addView(aboutVer, new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
-
-        TextView aboutDesc = new TextView(this);
-        aboutDesc.setText("一个简洁的 B 站第三方客户端\n调用 B 站官方 API，无自有后端\n纯 Java 开发，兼容 Android 1.0+");
-        aboutDesc.setTextColor(0xFFCCCCCC);
-        aboutDesc.setTextSize(13);
-        aboutDesc.setGravity(Gravity.CENTER);
-        aboutDesc.setLineSpacing(6, 1);
-        aboutPage.addView(aboutDesc, new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
-
-        Button btnCheckUpdate = new Button(this);
-        btnCheckUpdate.setText("检查更新");
-        btnCheckUpdate.setTextColor(0xFFFFFFFF);
-        btnCheckUpdate.setBackgroundColor(0xFF0F3460);
-        LinearLayout.LayoutParams btnLp = new LinearLayout.LayoutParams(300, 80);
-        btnLp.topMargin = 40;
-        aboutPage.addView(btnCheckUpdate, btnLp);
-
-        btnCheckUpdate.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                startActivity(new Intent(MainActivity.this, UpdateActivity.class));
-            }
-        });
-
-        flipper.addView(aboutPage);
         root.addView(flipper, new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.FILL_PARENT, 0, 1));
-
         setContentView(root);
 
-        // 适配器
         hotAdapter = new VideoAdapter(this, hotVideos);
         hotList.setAdapter(hotAdapter);
         searchAdapter = new VideoAdapter(this, searchVideos);
         searchList.setAdapter(searchAdapter);
 
-        // 标签切换
         tabHot.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                flipper.setDisplayedChild(0);
-                tabHot.setBackgroundColor(0xFFE94560);
-                tabSearch.setBackgroundColor(0xFF16213E);
-                tabAbout.setBackgroundColor(0xFF16213E);
-            }
+            public void onClick(View v) { flipper.setDisplayedChild(0); updateTabs(0); }
         });
         tabSearch.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                flipper.setDisplayedChild(1);
-                tabHot.setBackgroundColor(0xFF16213E);
-                tabSearch.setBackgroundColor(0xFFE94560);
-                tabAbout.setBackgroundColor(0xFF16213E);
-            }
+            public void onClick(View v) { flipper.setDisplayedChild(1); updateTabs(1); }
         });
-        tabAbout.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                flipper.setDisplayedChild(2);
-                tabHot.setBackgroundColor(0xFF16213E);
-                tabSearch.setBackgroundColor(0xFF16213E);
-                tabAbout.setBackgroundColor(0xFFE94560);
-            }
-        });
+        if (tabPersonal != null) {
+            tabPersonal.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) { flipper.setDisplayedChild(2); updateTabs(2); }
+            });
+        }
 
-        // 热门点击
         hotList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick(AdapterView parent, View view, int pos, long id) {
                 if (pos >= hotVideos.size()) return;
                 Video v = (Video) hotVideos.get(pos);
-                Intent it = new Intent(MainActivity.this, VideoDetailActivity.class);
-                it.putExtra("bvid", v.bvid);
-                startActivity(it);
+                openVideo(v.bvid, v.title, v.pic);
             }
         });
-
-        // 搜索点击
         searchList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick(AdapterView parent, View view, int pos, long id) {
                 if (pos >= searchVideos.size()) return;
                 Video v = (Video) searchVideos.get(pos);
-                Intent it = new Intent(MainActivity.this, VideoDetailActivity.class);
-                it.putExtra("bvid", v.bvid);
-                startActivity(it);
+                openVideo(v.bvid, v.title, v.pic);
             }
         });
-
-        // 搜索按钮
         btnSearch.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                String kw = etSearch.getText().toString().trim();
-                if (kw.length() > 0) doSearch(kw);
+            public void onClick(View v) { doSearch(); }
+        });
+        etSearch.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            public boolean onEditorAction(TextView v, int actionId, android.view.KeyEvent event) {
+                doSearch(); return true;
             }
         });
 
-        // 无限热门列表：滚动到底部自动回顶刷新
         hotList.setOnScrollListener(new AbsListView.OnScrollListener() {
-            public void onScrollStateChanged(AbsListView view, int scrollState) {
-            }
+            public void onScrollStateChanged(AbsListView view, int scrollState) {}
             public void onScroll(AbsListView view, int firstVisible, int visibleCount, int totalCount) {
                 if (hotRefreshing || hotLoading) return;
                 if (totalCount > 0 && firstVisible + visibleCount >= totalCount) {
@@ -301,54 +221,206 @@ public class MainActivity extends Activity {
                             hotList.smoothScrollToPosition(0);
                             handler.postDelayed(new Runnable() {
                                 public void run() {
-                                    hotPage = 1;
-                                    hotVideos.clear();
-                                    loadHot();
-                                    hotRefreshing = false;
+                                    hotPage = 1; hotVideos.clear(); loadHot(); hotRefreshing = false;
                                 }
-                            }, 500);
+                            }, 400);
                         }
-                    }, 300);
+                    }, 200);
                 }
             }
         });
-
-        // 启动公告
-        AnnouncementHelper.show(this);
-
-        // 加载热门
-        loadHot();
     }
 
-    private void updateUserUI() {
-        if (UserManager.isLogin()) {
-            tvUserName.setText(UserManager.getUname());
-            btnLogin.setText("退出");
-            if (UserManager.getAvatar() != null && UserManager.getAvatar().length() > 0) {
-                ImageLoader loader = new ImageLoader(this);
-                loader.display(UserManager.getAvatar(), ivUserAvatar, 36, 36);
+    private LinearLayout buildPersonalPage() {
+        LinearLayout page = new LinearLayout(this);
+        page.setOrientation(LinearLayout.VERTICAL);
+        page.setPadding(24, 24, 24, 24);
+
+        LinearLayout userCard = new LinearLayout(this);
+        userCard.setOrientation(LinearLayout.HORIZONTAL);
+        userCard.setBackgroundColor(0xFFFFFFFF);
+        userCard.setPadding(20, 20, 20, 20);
+        userCard.setGravity(Gravity.CENTER_VERTICAL);
+
+        final ImageView ivAvatar = new ImageView(this);
+        ivAvatar.setLayoutParams(new LinearLayout.LayoutParams(72, 72));
+        ivAvatar.setBackgroundColor(0xFFE3F2FD);
+        userCard.addView(ivAvatar);
+
+        LinearLayout userInfo = new LinearLayout(this);
+        userInfo.setOrientation(LinearLayout.VERTICAL);
+        userInfo.setPadding(16, 0, 0, 0);
+        TextView tvName = new TextView(this);
+        tvName.setText(UserManager.isLogin() ? UserManager.getUname() : "未登录");
+        tvName.setTextColor(0xFF212121);
+        tvName.setTextSize(18);
+        tvName.getPaint().setFakeBoldText(true);
+        userInfo.addView(tvName);
+        TextView tvTip = new TextView(this);
+        tvTip.setText(UserManager.isLogin() ? "已登录 B 站账号" : "点击登录享受更多功能");
+        tvTip.setTextColor(0xFF757575);
+        tvTip.setTextSize(12);
+        userInfo.addView(tvTip);
+        userCard.addView(userInfo);
+        page.addView(userCard, new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        if (UserManager.isLogin() && UserManager.getAvatar().length() > 0) {
+            new ImageLoader(this).display(UserManager.getAvatar(), ivAvatar, 72, 72);
+        }
+
+        String[][] items = {
+            {"发布视频", "upload"}, {"我的视频", "myvideos"}, {"每日签到", "checkin"},
+            {"缓存管理", "cache"}, {"弹幕设置", "danmaku"}, {"检查更新", "update"}, {"退出登录", "logout"}
+        };
+        for (int i = 0; i < items.length; i++) {
+            final String tag = items[i][1];
+            Button btn = new Button(this);
+            btn.setText(items[i][0]);
+            btn.setTextColor(0xFF212121);
+            btn.setBackgroundColor(0xFFFFFFFF);
+            btn.setGravity(Gravity.LEFT | Gravity.CENTER_VERTICAL);
+            btn.setPadding(24, 0, 24, 0);
+            LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.FILL_PARENT, 56);
+            blp.topMargin = 2;
+            page.addView(btn, blp);
+            btn.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) { handlePersonalAction(tag); }
+            });
+        }
+        return page;
+    }
+
+    private void handlePersonalAction(String tag) {
+        try {
+            if ("upload".equals(tag)) {
+                if (!UserManager.isLogin()) { Toast.makeText(this, "请先登录", Toast.LENGTH_SHORT).show(); startActivity(new Intent(this, LoginActivity.class)); return; }
+                startActivity(new Intent(this, UploadActivity.class));
+            } else if ("myvideos".equals(tag)) {
+                if (!UserManager.isLogin()) { Toast.makeText(this, "请先登录", Toast.LENGTH_SHORT).show(); startActivity(new Intent(this, LoginActivity.class)); return; }
+                Intent it = new Intent(this, PersonalActivity.class); it.putExtra("mode", "myvideos"); startActivity(it);
+            } else if ("checkin".equals(tag)) {
+                if (!UserManager.isLogin()) { Toast.makeText(this, "请先登录", Toast.LENGTH_SHORT).show(); startActivity(new Intent(this, LoginActivity.class)); return; }
+                doCheckIn();
+            } else if ("cache".equals(tag)) {
+                Intent it = new Intent(this, PersonalActivity.class); it.putExtra("mode", "cache"); startActivity(it);
+            } else if ("danmaku".equals(tag)) {
+                showDanmakuSettings();
+            } else if ("update".equals(tag)) {
+                startActivity(new Intent(this, UpdateActivity.class));
+            } else if ("logout".equals(tag)) {
+                UserManager.logout(this); Toast.makeText(this, "已退出登录", Toast.LENGTH_SHORT).show(); recreate();
             }
-        } else {
-            tvUserName.setText("");
-            btnLogin.setText("登录");
-            ivUserAvatar.setImageResource(android.R.drawable.ic_menu_gallery);
+        } catch (Exception e) {
+            Toast.makeText(this, "操作失败", Toast.LENGTH_SHORT).show();
         }
     }
 
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == 100 && resultCode == RESULT_OK) {
-            updateUserUI();
+    private void doCheckIn() {
+        new Thread(new Runnable() {
+            public void run() {
+                final String[] result = BiliApi.dailyCheckIn();
+                handler.post(new Runnable() {
+                    public void run() { Toast.makeText(MainActivity.this, result[1], Toast.LENGTH_SHORT).show(); }
+                });
+            }
+        }).start();
+    }
+
+    private void showDanmakuSettings() {
+        final int current = PrefsManager.getDanmakuSize();
+        final String[] sizes = {"小", "中", "大"};
+        final int[] sizeVals = {14, 18, 24};
+        int checked = 1;
+        for (int i = 0; i < sizeVals.length; i++) { if (sizeVals[i] == current) checked = i; }
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        builder.setTitle("弹幕大小");
+        final int fChecked = checked;
+        builder.setSingleChoiceItems(sizes, fChecked, new android.content.DialogInterface.OnClickListener() {
+            public void onClick(android.content.DialogInterface dialog, int which) {
+                PrefsManager.setDanmakuSize(sizeVals[which]);
+                Toast.makeText(MainActivity.this, "已设置为" + sizes[which], Toast.LENGTH_SHORT).show();
+                dialog.dismiss();
+            }
+        });
+        builder.show();
+    }
+
+    private void openVideo(String bvid, String title, String pic) {
+        try {
+            PrefsManager.addHistory(bvid, title, pic);
+            Intent it = new Intent(this, VideoDetailActivity.class);
+            it.putExtra("bvid", bvid);
+            startActivity(it);
+        } catch (Exception e) {
+            Toast.makeText(this, "打开失败", Toast.LENGTH_SHORT).show();
         }
     }
 
     private Button makeTab(String text, boolean active) {
         Button b = new Button(this);
         b.setText(text);
-        b.setTextColor(0xFFFFFFFF);
+        b.setTextColor(active ? 0xFF2196F3 : 0xFF9E9E9E);
         b.setTextSize(14);
-        b.setBackgroundColor(active ? 0xFFE94560 : 0xFF16213E);
+        b.setBackgroundColor(0xFFFFFFFF);
         return b;
+    }
+
+    private void updateTabs(int active) {
+        tabHot.setTextColor(active == 0 ? 0xFF2196F3 : 0xFF9E9E9E);
+        tabSearch.setTextColor(active == 1 ? 0xFF2196F3 : 0xFF9E9E9E);
+        if (tabPersonal != null) tabPersonal.setTextColor(active == 2 ? 0xFF2196F3 : 0xFF9E9E9E);
+    }
+
+    private void doSearch() {
+        String kw = etSearch.getText().toString().trim();
+        if (kw.length() == 0) return;
+        if (kw.matches("^BV[a-zA-Z0-9]{10}$")) { openVideo(kw, kw, ""); return; }
+        if (kw.matches("^[aA][vV]\\d+$")) { searchByAid(kw.replaceAll("[aA][vV]", "")); return; }
+        if (kw.matches("^\\d+$") && kw.length() > 4) { searchByAid(kw); return; }
+
+        searchProgress.setVisibility(View.VISIBLE);
+        searchVideos.clear();
+        searchAdapter.notifyDataSetChanged();
+        new Thread(new Runnable() {
+            public void run() {
+                final List result = BiliApi.search(etSearch.getText().toString().trim(), 1);
+                handler.post(new Runnable() {
+                    public void run() {
+                        searchProgress.setVisibility(View.GONE);
+                        if (result != null) { searchVideos.addAll(result); searchAdapter.notifyDataSetChanged(); }
+                    }
+                });
+            }
+        }).start();
+    }
+
+    private void searchByAid(final String aid) {
+        new Thread(new Runnable() {
+            public void run() {
+                try {
+                    String json = HttpUtil.get("https://api.bilibili.com/x/web-interface/view?aid=" + aid);
+                    if (json != null) {
+                        JSONObject obj = new JSONObject(json);
+                        if (obj.optInt("code") == 0) {
+                            final String bvid = obj.getJSONObject("data").optString("bvid", "");
+                            final String title = obj.getJSONObject("data").optString("title", "");
+                            handler.post(new Runnable() {
+                                public void run() {
+                                    if (bvid.length() > 0) openVideo(bvid, title, "");
+                                    else Toast.makeText(MainActivity.this, "未找到视频", Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                            return;
+                        }
+                    }
+                } catch (Exception e) {}
+                handler.post(new Runnable() {
+                    public void run() { Toast.makeText(MainActivity.this, "AV号查找失败", Toast.LENGTH_SHORT).show(); }
+                });
+            }
+        }).start();
     }
 
     private void loadHot() {
@@ -362,31 +434,7 @@ public class MainActivity extends Activity {
                     public void run() {
                         hotProgress.setVisibility(View.GONE);
                         hotLoading = false;
-                        if (result != null) {
-                            hotVideos.addAll(result);
-                            hotAdapter.notifyDataSetChanged();
-                            hotPage++;
-                        }
-                    }
-                });
-            }
-        }).start();
-    }
-
-    private void doSearch(final String keyword) {
-        searchProgress.setVisibility(View.VISIBLE);
-        searchVideos.clear();
-        searchAdapter.notifyDataSetChanged();
-        new Thread(new Runnable() {
-            public void run() {
-                final List result = BiliApi.search(keyword, 1);
-                handler.post(new Runnable() {
-                    public void run() {
-                        searchProgress.setVisibility(View.GONE);
-                        if (result != null) {
-                            searchVideos.addAll(result);
-                            searchAdapter.notifyDataSetChanged();
-                        }
+                        if (result != null) { hotVideos.addAll(result); hotAdapter.notifyDataSetChanged(); hotPage++; }
                     }
                 });
             }

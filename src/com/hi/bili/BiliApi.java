@@ -349,4 +349,116 @@ public class BiliApi {
         public int color;
         public String text;
     }
+
+    // === 投币 ===
+    public static boolean addCoin(String aid, int num) {
+        try {
+            if (!UserManager.isLogin()) return false;
+            String csrf = extractCsrf();
+            String url = BASE + "/x/web-interface/coin/add?aid=" + aid + "&multiply=" + num
+                + "&select_like=1&csrf=" + csrf;
+            String json = HttpUtil.getWithCookie(url);
+            if (json == null) return false;
+            return new JSONObject(json).optInt("code") == 0;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private static String extractCsrf() {
+        String cookie = UserManager.getCookie();
+        if (cookie == null) return "";
+        String[] parts = cookie.split(";");
+        for (int i = 0; i < parts.length; i++) {
+            String[] kv = parts[i].trim().split("=", 2);
+            if (kv.length == 2 && "bili_jct".equals(kv[0])) {
+                return kv[1];
+            }
+        }
+        return "";
+    }
+
+    // === 硬币数量 ===
+    public static int getCoinCount() {
+        try {
+            String url = BASE + "/x/web-interface/nav";
+            String json = HttpUtil.getWithCookie(url);
+            if (json == null) return 0;
+            JSONObject data = new JSONObject(json).optJSONObject("data");
+            if (data != null) return data.optInt("money", 0);
+        } catch (Exception e) {
+        }
+        return 0;
+    }
+
+    // === 每日签到 ===
+    public static String[] dailyCheckIn() {
+        try {
+            if (!UserManager.isLogin()) return new String[]{"-1", "未登录"};
+            String url = "https://api.live.bilibili.com/xlive/web-ucenter/v1/sign/DoSign";
+            String json = HttpUtil.getWithCookie(url);
+            if (json == null) return new String[]{"-1", "网络错误"};
+            JSONObject obj = new JSONObject(json);
+            int code = obj.optInt("code", -1);
+            String msg = obj.optString("message", "");
+            return new String[]{String.valueOf(code), msg};
+        } catch (Exception e) {
+            return new String[]{"-1", e.getMessage()};
+        }
+    }
+
+    // === 我的视频列表 ===
+    public static List getMyVideos(String mid, int page) {
+        List list = new ArrayList();
+        try {
+            String url = BASE + "/x/space/wbi/arc/search?mid=" + mid + "&pn=" + page + "&ps=20";
+            // 需要 WBI 签名
+            Map params = new HashMap();
+            params.put("mid", mid);
+            params.put("pn", String.valueOf(page));
+            params.put("ps", "20");
+            String query = WbiSign.sign(params);
+            url = BASE + "/x/space/wbi/arc/search?" + query;
+            String json = HttpUtil.getWithCookie(url);
+            if (json == null) return list;
+            JSONObject obj = new JSONObject(json);
+            if (obj.optInt("code") != 0) return list;
+            JSONObject data = obj.getJSONObject("data");
+            JSONObject listObj = data.optJSONObject("list");
+            if (listObj == null) return list;
+            JSONArray arr = listObj.optJSONArray("vlist");
+            if (arr == null) return list;
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject v = arr.getJSONObject(i);
+                Video video = new Video();
+                video.bvid = v.optString("bvid", "");
+                video.aid = String.valueOf(v.optLong("aid", 0));
+                video.cid = String.valueOf(v.optLong("cid", 0));
+                video.title = v.optString("title", "");
+                video.pic = v.optString("pic", "");
+                video.desc = v.optString("description", "");
+                video.ownerName = v.optString("author", "");
+                video.play = v.optInt("play", 0);
+                video.danmaku = v.optInt("video_review", 0);
+                list.add(video);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    // === 投稿预上传（获取上传凭证） ===
+    public static String[] getUploadCredential() {
+        try {
+            if (!UserManager.isLogin()) return null;
+            String url = BASE + "/x/videoup/author/info";
+            String json = HttpUtil.getWithCookie(url);
+            if (json == null) return null;
+            // 返回上传所需的 profile 信息
+            return new String[]{json};
+        } catch (Exception e) {
+            return null;
+        }
+    }
 }

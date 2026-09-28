@@ -63,6 +63,11 @@ public class DanmakuView extends View {
         invalidate();
     }
 
+    public void setTextSize(float size) {
+        textSize = size;
+        invalidate();
+    }
+
     public boolean isShow() { return showDanmaku; }
 
     public void updateTime(float currentTime) {

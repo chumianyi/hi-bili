@@ -1,7 +1,6 @@
 package com.hi.bili;
 
 import android.content.Context;
-import android.graphics.Bitmap;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -52,9 +51,9 @@ public class CommentAdapter extends BaseAdapter {
         holder.tvContent.setText(c.content);
         holder.tvLike.setText("♥ " + c.like);
         if (c.action == 1) {
-            holder.tvLike.setTextColor(0xFFE94560);
+            holder.tvLike.setTextColor(0xFFFF9800);
         } else {
-            holder.tvLike.setTextColor(0xFF8892B0);
+            holder.tvLike.setTextColor(0xFF9E9E9E);
         }
         if (c.ctime > 0) {
             SimpleDateFormat sdf = new SimpleDateFormat("MM-dd HH:mm", Locale.getDefault());

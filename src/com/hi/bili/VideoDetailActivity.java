@@ -2,8 +2,10 @@ package com.hi.bili;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -11,6 +13,7 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.hi.bili.model.Video;
 
@@ -18,16 +21,17 @@ public class VideoDetailActivity extends Activity {
 
     private ImageView ivCover;
     private TextView tvTitle, tvOwner, tvStats, tvDesc;
-    private Button btnPlay, btnComments;
+    private Button btnPlay, btnComments, btnCache, btnCoin;
     private ProgressBar progress;
     private Handler handler = new Handler();
     private Video video;
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        PrefsManager.init(this);
 
         ScrollView scroll = new ScrollView(this);
-        scroll.setBackgroundColor(0xFF1A1A2E);
+        scroll.setBackgroundColor(0xFFF5F9FF);
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -35,51 +39,58 @@ public class VideoDetailActivity extends Activity {
 
         ivCover = new ImageView(this);
         ivCover.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        ivCover.setBackgroundColor(0xFF333333);
+        ivCover.setBackgroundColor(0xFFE3F2FD);
         root.addView(ivCover, new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.FILL_PARENT, 200));
 
         tvTitle = new TextView(this);
-        tvTitle.setTextColor(0xFFFFFFFF);
+        tvTitle.setTextColor(0xFF212121);
         tvTitle.setTextSize(18);
         tvTitle.getPaint().setFakeBoldText(true);
         tvTitle.setPadding(0, 12, 0, 6);
         root.addView(tvTitle);
 
         tvOwner = new TextView(this);
-        tvOwner.setTextColor(0xFFE94560);
+        tvOwner.setTextColor(0xFF2196F3);
         tvOwner.setTextSize(13);
         root.addView(tvOwner);
 
         tvStats = new TextView(this);
-        tvStats.setTextColor(0xFF8892B0);
+        tvStats.setTextColor(0xFF757575);
         tvStats.setTextSize(12);
         tvStats.setPadding(0, 4, 0, 8);
         root.addView(tvStats);
 
         tvDesc = new TextView(this);
-        tvDesc.setTextColor(0xFFCCCCCC);
+        tvDesc.setTextColor(0xFF424242);
         tvDesc.setTextSize(13);
         tvDesc.setLineSpacing(4, 1);
         root.addView(tvDesc);
 
-        btnPlay = new Button(this);
-        btnPlay.setText("▶ 播放视频");
-        btnPlay.setTextColor(0xFFFFFFFF);
-        btnPlay.setBackgroundColor(0xFFE94560);
-        LinearLayout.LayoutParams playLp = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.FILL_PARENT, 80);
-        playLp.topMargin = 20;
-        root.addView(btnPlay, playLp);
+        // 按钮行
+        LinearLayout btnRow = new LinearLayout(this);
+        btnRow.setOrientation(LinearLayout.HORIZONTAL);
+        btnRow.setPadding(0, 16, 0, 0);
 
-        btnComments = new Button(this);
-        btnComments.setText("查看评论");
-        btnComments.setTextColor(0xFFFFFFFF);
-        btnComments.setBackgroundColor(0xFF0F3460);
-        LinearLayout.LayoutParams cmtLp = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.FILL_PARENT, 70);
-        cmtLp.topMargin = 12;
-        root.addView(btnComments, cmtLp);
+        btnPlay = makeBtn("▶ 播放", 0xFF2196F3);
+        btnComments = makeBtn("评论", 0xFF03A9F4);
+        btnRow.addView(btnPlay, new LinearLayout.LayoutParams(0, 70, 1));
+        btnRow.addView(btnComments, new LinearLayout.LayoutParams(0, 70, 1));
+        root.addView(btnRow, new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        // 高级功能按钮（非精简模式）
+        if (Build.VERSION.SDK_INT >= 3) {
+            LinearLayout btnRow2 = new LinearLayout(this);
+            btnRow2.setOrientation(LinearLayout.HORIZONTAL);
+            btnRow2.setPadding(0, 8, 0, 0);
+            btnCache = makeBtn("缓存", 0xFF43A047);
+            btnCoin = makeBtn("投币", 0xFFFF9800);
+            btnRow2.addView(btnCache, new LinearLayout.LayoutParams(0, 64, 1));
+            btnRow2.addView(btnCoin, new LinearLayout.LayoutParams(0, 64, 1));
+            root.addView(btnRow2, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        }
 
         progress = new ProgressBar(this);
         root.addView(progress, new LinearLayout.LayoutParams(
@@ -101,7 +112,6 @@ public class VideoDetailActivity extends Activity {
                 }
             }
         });
-
         btnComments.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 if (video != null) {
@@ -111,8 +121,64 @@ public class VideoDetailActivity extends Activity {
                 }
             }
         });
+        if (btnCache != null) {
+            btnCache.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) { cacheVideo(); }
+            });
+        }
+        if (btnCoin != null) {
+            btnCoin.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) { showCoinDialog(); }
+            });
+        }
 
         loadDetail(bvid);
+    }
+
+    private Button makeBtn(String text, int color) {
+        Button b = new Button(this);
+        b.setText(text);
+        b.setTextColor(0xFFFFFFFF);
+        b.setBackgroundColor(color);
+        b.setTextSize(14);
+        return b;
+    }
+
+    private void cacheVideo() {
+        if (video == null) return;
+        if (Build.VERSION.SDK_INT >= 9) {
+            CacheManager.cache(this, video);
+            Toast.makeText(this, "已加入下载队列", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, "当前系统版本不支持缓存", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void showCoinDialog() {
+        if (!UserManager.isLogin()) {
+            Toast.makeText(this, "请先登录", Toast.LENGTH_SHORT).show();
+            startActivity(new Intent(this, LoginActivity.class));
+            return;
+        }
+        final String[] options = {"投 1 个硬币", "投 2 个硬币"};
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        builder.setTitle("投币支持 UP 主");
+        builder.setItems(options, new android.content.DialogInterface.OnClickListener() {
+            public void onClick(android.content.DialogInterface dialog, int which) {
+                final int num = which + 1;
+                new Thread(new Runnable() {
+                    public void run() {
+                        final boolean ok = BiliApi.addCoin(video.aid, num);
+                        handler.post(new Runnable() {
+                            public void run() {
+                                Toast.makeText(VideoDetailActivity.this, ok ? "投币成功！" : "投币失败", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    }
+                }).start();
+            }
+        });
+        builder.show();
     }
 
     private void loadDetail(final String bvid) {

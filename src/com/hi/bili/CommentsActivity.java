@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.View;
-import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -22,7 +21,6 @@ public class CommentsActivity extends Activity {
 
     private ListView listView;
     private ProgressBar progress;
-    private TextView tvEmpty;
     private Button btnLoadMore;
     private CommentAdapter adapter;
     private List comments = new ArrayList();
@@ -34,37 +32,36 @@ public class CommentsActivity extends Activity {
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+        PrefsManager.init(this);
         aid = getIntent().getStringExtra("aid");
         setTitle("评论");
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(0xFF1A1A2E);
+        root.setBackgroundColor(0xFFF5F9FF);
 
         progress = new ProgressBar(this);
-        progress.setLayoutParams(new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.FILL_PARENT, 80));
-        root.addView(progress);
+        root.addView(progress, new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.FILL_PARENT, 60));
 
         listView = new ListView(this);
         listView.setCacheColorHint(0);
         listView.setDividerHeight(1);
-        listView.setDivider(new android.graphics.drawable.ColorDrawable(0xFF2A2A4E));
+        listView.setDivider(new android.graphics.drawable.ColorDrawable(0xFFE0E0E0));
         root.addView(listView, new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.FILL_PARENT, 0, 1));
 
         btnLoadMore = new Button(this);
         btnLoadMore.setText("加载更多");
         btnLoadMore.setTextColor(0xFFFFFFFF);
-        btnLoadMore.setBackgroundColor(0xFF0F3460);
+        btnLoadMore.setBackgroundColor(0xFF2196F3);
         btnLoadMore.setVisibility(View.GONE);
         root.addView(btnLoadMore, new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
-        tvEmpty = new TextView(this);
+        TextView tvEmpty = new TextView(this);
         tvEmpty.setText("暂无评论");
-        tvEmpty.setTextColor(0xFF8892B0);
+        tvEmpty.setTextColor(0xFF9E9E9E);
         tvEmpty.setGravity(android.view.Gravity.CENTER);
         tvEmpty.setPadding(0, 40, 0, 40);
         listView.setEmptyView(tvEmpty);
@@ -105,9 +102,7 @@ public class CommentsActivity extends Activity {
         });
 
         btnLoadMore.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                loadComments();
-            }
+            public void onClick(View v) { loadComments(); }
         });
 
         loadComments();
@@ -118,7 +113,6 @@ public class CommentsActivity extends Activity {
         loading = true;
         progress.setVisibility(View.VISIBLE);
         btnLoadMore.setVisibility(View.GONE);
-
         new Thread(new Runnable() {
             public void run() {
                 final List result = BiliApi.getComments(aid, currentPage);

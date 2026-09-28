@@ -53,12 +53,23 @@ javac -source 1.7 -target 1.7 \
     -d "$BUILD_DIR/classes" \
     @"$BUILD_DIR/sources.txt" 2>&1 | tail -10
 
-echo "=== 3. DEX 转换 (d8) ==="
+echo "=== 3. DEX 转换 (d8/dx) ==="
 DEX_INPUTS=$(find "$BUILD_DIR/classes" -name "*.class")
-if [ -f "$PROJECT_DIR/libs/core.jar" ]; then
-    "$BUILD_TOOLS/d8" --min-api 1 --output "$BUILD_DIR" $DEX_INPUTS "$PROJECT_DIR/libs/core.jar" 2>&1 | tail -5
+if [ -f "$BUILD_TOOLS/d8" ]; then
+    echo "Using d8"
+    if [ -f "$PROJECT_DIR/libs/core.jar" ]; then
+        "$BUILD_TOOLS/d8" --min-api 1 --output "$BUILD_DIR" $DEX_INPUTS "$PROJECT_DIR/libs/core.jar" 2>&1 | tail -5
+    else
+        "$BUILD_TOOLS/d8" --min-api 1 --output "$BUILD_DIR" $DEX_INPUTS 2>&1 | tail -5
+    fi
 else
-    "$BUILD_TOOLS/d8" --min-api 1 --output "$BUILD_DIR" $DEX_INPUTS 2>&1 | tail -5
+    echo "d8 not found, using dx fallback"
+    # dx needs a jar or directory
+    if [ -f "$PROJECT_DIR/libs/core.jar" ]; then
+        "$BUILD_TOOLS/dx" --dex --output="$BUILD_DIR/classes.dex" "$BUILD_DIR/classes" "$PROJECT_DIR/libs/core.jar" 2>&1 | tail -5
+    else
+        "$BUILD_TOOLS/dx" --dex --output="$BUILD_DIR/classes.dex" "$BUILD_DIR/classes" 2>&1 | tail -5
+    fi
 fi
 
 echo "=== 4. 打包 APK ==="

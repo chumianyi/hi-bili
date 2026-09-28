@@ -2,7 +2,6 @@ package com.hi.bili;
 
 import android.app.Activity;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
@@ -34,16 +33,17 @@ public class LoginActivity extends Activity {
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        PrefsManager.init(this);
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(0xFF1A1A2E);
+        root.setBackgroundColor(0xFFF5F9FF);
         root.setGravity(Gravity.CENTER);
         root.setPadding(32, 32, 32, 32);
 
         TextView title = new TextView(this);
         title.setText("扫码登录");
-        title.setTextColor(0xFFE94560);
+        title.setTextColor(0xFF1565C0);
         title.setTextSize(22);
         title.getPaint().setFakeBoldText(true);
         title.setGravity(Gravity.CENTER);
@@ -60,7 +60,7 @@ public class LoginActivity extends Activity {
 
         tvStatus = new TextView(this);
         tvStatus.setText("正在生成二维码...");
-        tvStatus.setTextColor(0xFF8892B0);
+        tvStatus.setTextColor(0xFF757575);
         tvStatus.setTextSize(14);
         tvStatus.setGravity(Gravity.CENTER);
         root.addView(tvStatus, new LinearLayout.LayoutParams(
@@ -69,16 +69,13 @@ public class LoginActivity extends Activity {
         btnCancel = new Button(this);
         btnCancel.setText("取消");
         btnCancel.setTextColor(0xFFFFFFFF);
-        btnCancel.setBackgroundColor(0xFF0F3460);
+        btnCancel.setBackgroundColor(0xFF9E9E9E);
         LinearLayout.LayoutParams btnLp = new LinearLayout.LayoutParams(200, 80);
         btnLp.topMargin = 24;
         root.addView(btnCancel, btnLp);
 
         btnCancel.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                polling = false;
-                finish();
-            }
+            public void onClick(View v) { polling = false; finish(); }
         });
 
         setContentView(root);
@@ -129,7 +126,6 @@ public class LoginActivity extends Activity {
             bmp.setPixels(pixels, 0, width, 0, 0, width, height);
             return bmp;
         } catch (Exception e) {
-            e.printStackTrace();
             return null;
         }
     }
@@ -139,11 +135,7 @@ public class LoginActivity extends Activity {
             public void run() {
                 int count = 0;
                 while (polling && count < 120) {
-                    try {
-                        Thread.sleep(2000);
-                    } catch (InterruptedException e) {
-                        break;
-                    }
+                    try { Thread.sleep(2000); } catch (InterruptedException e) { break; }
                     count++;
                     final int code = BiliApi.pollQRCode(qrcodeKey);
                     handler.post(new Runnable() {
