@@ -63,6 +63,11 @@
             android:screenOrientation="sensor"
             android:exported="false" />
 
+        <activity android:name=".WebViewPlayerActivity"
+            android:screenOrientation="sensor"
+            android:exported="false"
+            android:hardwareAccelerated="true" />
+
         <activity android:name=".CommentsActivity"
             android:screenOrientation="portrait"
             android:exported="false" />

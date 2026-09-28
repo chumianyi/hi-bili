@@ -155,7 +155,7 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback {
                         try {
                             if (destroyed) return;
                             if (finalUrl == null || finalUrl.length() == 0) {
-                                showError("视频地址获取失败\n可能是会员专享视频或需要登录\n可在设置中切换为浏览器播放");
+                                showError("视频地址获取失败\n可能是会员专享视频或需要登录\n可在设置中切换为 WebView 或外部播放器");
                                 return;
                             }
                             pendingUrl = finalUrl;
@@ -219,7 +219,7 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback {
 
             mediaPlayer.setOnErrorListener(new MediaPlayer.OnErrorListener() {
                 public boolean onError(MediaPlayer mp, int what, int extra) {
-                    try { showError("视频播放失败 (错误码: " + what + ")\n可在设置中切换为浏览器播放"); } catch (Exception e) {}
+                    try { showError("视频播放失败 (错误码: " + what + ")\n硬解播放失败，可在设置中切换为 WebView 或外部播放器"); } catch (Exception e) {}
                     return true;
                 }
             });

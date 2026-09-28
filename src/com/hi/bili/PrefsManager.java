@@ -53,7 +53,7 @@ public class PrefsManager {
     }
 
     // === 播放方式 ===
-    // "internal" = 内置播放器, "browser" = 浏览器播放
+    // "internal" = 内部播放器(硬解), "webview" = 内部WebView, "external" = 外部播放器
     public static String getPlaybackMode() {
         return sp.getString("playback_mode", "internal");
     }

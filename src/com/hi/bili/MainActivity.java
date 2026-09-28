@@ -353,8 +353,8 @@ public class MainActivity extends Activity {
     private void showPlaybackSettings() {
         try {
             final String current = PrefsManager.getPlaybackMode();
-            final String[] modes = {"内置播放器", "浏览器播放"};
-            final String[] modeVals = {"internal", "browser"};
+            final String[] modes = {"内部播放器（硬解）", "内部 WebView 播放", "外部播放器"};
+            final String[] modeVals = {"internal", "webview", "external"};
             int checked = 0;
             for (int i = 0; i < modeVals.length; i++) { if (modeVals[i].equals(current)) checked = i; }
             android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
